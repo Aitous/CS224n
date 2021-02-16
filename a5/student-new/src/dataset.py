@@ -172,21 +172,25 @@ class CharCorruptionDataset(Dataset):
         doc = self.data[idx]
 
         # set_trace()
-        length = random.randint(4,min(int(self.block_size*7/8), len(doc)))
-        index_truncat_start = random.randint(0, len(doc) - length + 1)
+        length = random.randint(min(4,len(doc)),min(int(self.block_size*7/8), len(doc)))
+        #index_truncat_start = random.randint(0, len(doc) - length)
 
 
-        doc = doc[index_truncat_start: index_truncat_start+length]
+        #doc = doc[index_truncat_start: index_truncat_start+length]i
+        doc = doc[0:length]
 
-        length_truncated = int(random.uniform(0, 1/2)*len(doc))
+       # length_truncated = int(random.uniform(0, 1/2)*len(doc))
+#        length_truncated = int(random.gauss(1/4*len(doc), sigma=0.1))
+ #       length_truncated = max(0, min(len(doc), length_truncated))
+        length_truncated = random.randint(int(1/8*len(doc)), int(3/8*len(doc)))
         index_start = random.randint(0, len(doc) - length_truncated)
 
         prefix = doc[0:index_start]
         masked_content = doc[index_start: index_start + length_truncated]
         suffix = doc[index_start + length_truncated:]
 
-        masked_string = prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content + self.PAD_CHAR*(self.block_size - len(doc))
-
+        masked_string = prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content + self.PAD_CHAR*(self.block_size - len(doc) - 2)
+        
         x = masked_string[:-1]
         y = masked_string[1:]
 
@@ -226,3 +230,4 @@ if __name__ == '__main__':
     else:
         raise ValueError("Unknown dataset type in command line args: {}"
                 .format(args.dataset_type))
+

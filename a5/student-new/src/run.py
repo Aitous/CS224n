@@ -56,9 +56,10 @@ Don't change above here; write your code below
 
 if args.variant == 'vanilla':
     pass # TODO [part c]: Make some model here
-    model = model.GPT(mconf)
+    model = model.GPT(mconf, 'vanilla')
 elif args.variant == 'synthesizer':
     pass # TODO [part g]: Make some other model here
+    model = model.GPT(mconf, 'synthesizer')
 
 # From here on, your code should be identical independent of which
 # variant (vanilla or synthesizer) has been chosen.
@@ -84,7 +85,9 @@ if args.function == 'pretrain':
     tconf = trainer.TrainerConfig(max_epochs=650, batch_size=128, learning_rate=6e-3,
                   lr_decay=True, warmup_tokens=512*20, final_tokens=200*len(pretrain_dataset)*block_size,
                   num_workers=4)
-    pretrain_dataset = open(args.pretrain_corpus_path, encoding="utf8").read()
+
+    pretrain_dataset = dataset.CharCorruptionDataset(open(args.pretrain_corpus_path, encoding="utf8").read(), block_size)
+
     trainer = trainer.Trainer(model, pretrain_dataset, None, tconf)
     trainer.train()
     torch.save(model.state_dict(), args.writing_params_path)
@@ -111,7 +114,8 @@ elif args.function == 'finetune':
         tconf = trainer.TrainerConfig(max_epochs=75, batch_size=256, learning_rate=6e-4,
                       lr_decay=True, warmup_tokens=512*20, final_tokens=200*len(pretrain_dataset)*block_size,
                       num_workers=4)
-    finetune_dataset = open(args.finetune_corpus_path, encoding="utf8").read()
+
+    finetune_dataset = dataset.NameDataset(pretrain_dataset, open(args.finetune_corpus_path, encoding="utf8").read())
     trainer = trainer.Trainer(model, finetune_dataset, None, tconf)
     trainer.train()
     torch.save(model.state_dict(), args.writing_params_path)
@@ -139,6 +143,7 @@ elif args.function == 'evaluate':
     model.load_state_dict(torch.load(args.reading_params_path))
     correct = 0
     total = 0
+    model.to(device)
     with open(args.outputs_path, 'w') as fout:
         predictions = []
         for line in tqdm(open(args.eval_corpus_path)):
@@ -156,3 +161,4 @@ elif args.function == 'evaluate':
     else:
         print('Predictions written to {}; no targets provided'
                 .format(args.outputs_path))
+
